@@ -14,7 +14,6 @@ plugins {
     id("org.jetbrains.dokka") version "1.7.20"
 }
 
-
 repositories {
     // Use mavenCentral
     mavenCentral()
@@ -103,4 +102,10 @@ sourceSets.create("demo") {
     resources.srcDir("src/demo/resources")
     compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
     runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
+}
+
+val outputName = "${project.name}-$version.jar"
+
+tasks.withType<Jar> {
+    archiveFileName.set(outputName)
 }
