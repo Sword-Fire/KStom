@@ -4,18 +4,24 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minestom.server.command.CommandSender
-import net.minestom.server.command.builder.*
+import net.minestom.server.command.builder.Command
+import net.minestom.server.command.builder.CommandContext
+import net.minestom.server.command.builder.CommandExecutor
 import net.minestom.server.command.builder.arguments.Argument
 import net.minestom.server.command.builder.exception.ArgumentSyntaxException
 import net.minestom.server.entity.Player
 import org.jetbrains.annotations.Contract
 import world.cepi.kstom.Manager
+import world.cepi.kstom.command.arguments.literal
 import kotlin.coroutines.CoroutineContext
 
 open class Kommand(val k: Kommand.() -> Unit = {}, name: String, vararg aliases: String) : Kondition<Kommand>() {
     override val conditions: MutableList<ConditionContext.() -> Boolean> = mutableListOf()
     var playerCallbackFailMessage: (CommandSender) -> Unit = { }
     var consoleCallbackFailMessage: (CommandSender) -> Unit = { }
+    var commandHelpMessage: SyntaxContext.(CommandSender) -> Unit = { }
+
+    val help by literal
 
     override val t: Kommand
         get() = this
@@ -24,6 +30,8 @@ open class Kommand(val k: Kommand.() -> Unit = {}, name: String, vararg aliases:
     val command = Command(name, *aliases)
 
     init {
+        syntax { commandHelpMessage(sender) }
+        syntax(help) { commandHelpMessage(sender) }
         k()
     }
 
