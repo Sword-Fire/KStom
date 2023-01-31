@@ -1,11 +1,9 @@
 package world.cepi.kstom.command.arguments
 
 import net.minestom.server.command.CommandSender
-import net.minestom.server.command.builder.NodeMaker
 import net.minestom.server.command.builder.arguments.Argument
 import net.minestom.server.command.builder.arguments.ArgumentType
 import java.util.*
-import java.util.function.Supplier
 
 class ArgumentContextValue<T>(val lambda: CommandSender.() -> T?) {
     fun from(sender: CommandSender) = lambda(sender)
@@ -24,9 +22,8 @@ class ArgumentContext<T>(
     override fun parse(input: String): ArgumentContextValue<T> =
         ArgumentContextValue(argument?.let { { it.parse(input) } } ?: lambda)
 
-    override fun processNodes(nodeMaker: NodeMaker, executable: Boolean) {
-        (argument ?: ArgumentType.Integer(id)).processNodes(nodeMaker, executable)
-    }
+    override fun parser(): String =
+        (argument ?: ArgumentType.Integer(id)).parser()
 
     override fun toString() = "Context<$id>"
 

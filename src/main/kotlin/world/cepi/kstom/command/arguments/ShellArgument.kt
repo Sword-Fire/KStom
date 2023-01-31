@@ -1,6 +1,5 @@
 package world.cepi.kstom.command.arguments
 
-import net.minestom.server.command.builder.NodeMaker
 import net.minestom.server.command.builder.arguments.Argument
 
 object ShellArgument : Argument<Unit>("shell") {
@@ -8,8 +7,8 @@ object ShellArgument : Argument<Unit>("shell") {
 
     }
 
-    override fun processNodes(nodeMaker: NodeMaker, executable: Boolean) {
-
+    override fun parser(): String {
+        return ""
     }
 
     override fun toString() = "Shell"
