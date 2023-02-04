@@ -5,74 +5,51 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
-import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.CommandExecutor
 import net.minestom.server.command.builder.arguments.Argument
-import net.minestom.server.command.builder.exception.ArgumentSyntaxException
-import net.minestom.server.entity.Player
+import net.minestom.server.command.builder.arguments.ArgumentLiteral
 import org.jetbrains.annotations.Contract
 import world.cepi.kstom.Manager
-import world.cepi.kstom.command.arguments.literal
 import kotlin.coroutines.CoroutineContext
 
-open class Kommand(val k: Kommand.() -> Unit = {}, name: String, vararg aliases: String) : Kondition<Kommand>() {
+open class Kommand(initAction: Kommand.() -> Unit = {}, name: String, vararg aliases: String) : Kondition<Kommand>() {
+
     override val conditions: MutableList<ConditionContext.() -> Boolean> = mutableListOf()
-    var playerCallbackFailMessage: (CommandSender) -> Unit = { }
-    var consoleCallbackFailMessage: (CommandSender) -> Unit = { }
-    var commandHelpMessage: SyntaxContext.(CommandSender) -> Unit = { }
-
-    val help by literal
-
     override val t: Kommand
         get() = this
     override val kommandReference: Kommand by ::t
 
     val command = Command(name, *aliases)
+    val helpArg = ArgumentLiteral("help")
+    private var helpAction: SyntaxContext.(CommandSender) -> Unit = { }
+    var notPlayerAction: (CommandSender) -> Unit = { }
+    var notConsoleAction: (CommandSender) -> Unit = { }
 
     init {
-        syntax { commandHelpMessage(sender) }
-        syntax(help) { commandHelpMessage(sender) }
-        k()
+        default { helpAction(sender) }
+        syntax(helpArg) { helpAction(sender) }
+        initAction()
     }
-
-    data class SyntaxContext(val sender: CommandSender, val context: CommandContext) {
-
-        val player by lazy { sender as Player }
-
-        operator fun <T> get(argument: Argument<T>): T = context[argument]
-
-        val commandName = context.commandName
-
-        operator fun <T> Argument<T>.not(): T = context[this]
-    }
-
-    data class ConditionContext(val sender: CommandSender, val player: Player?, val input: String)
-    data class ArgumentCallbackContext(val sender: CommandSender, val exception: ArgumentSyntaxException)
 
     @Contract(pure = true)
     fun syntax(
         vararg arguments: Argument<*> = arrayOf(),
     ) = KSyntax(*arguments, conditions = conditions.toMutableList(), kommandReference = this)
 
-    @Contract(pure = true)
     fun syntax(
         vararg arguments: Argument<*> = arrayOf(),
         executor: SyntaxContext.() -> Unit
-    ) = KSyntax(*arguments, conditions = conditions.toMutableList(), kommandReference = this).also { it.invoke(executor) }
+    ) = KSyntax(*arguments, conditions = conditions.toMutableList(), kommandReference = this).also { it.applyExecutor(executor) }
 
-    @Contract(pure = true)
     fun syntaxSuspending(
         context: CoroutineContext = Dispatchers.IO,
         vararg arguments: Argument<*> = arrayOf(),
         executor: suspend SyntaxContext.() -> Unit
-    ) = KSyntax(*arguments, conditions = conditions.toMutableList(), kommandReference = this).invoke {
+    ) = KSyntax(*arguments, conditions = conditions.toMutableList(), kommandReference = this).applyExecutor {
         CoroutineScope(context).launch { executor() }
     }
 
-    inline fun argumentCallback(
-        arg: Argument<*>,
-        crossinline lambda: ArgumentCallbackContext.() -> Unit
-    ) {
+    inline fun argumentCallback(arg: Argument<*>, crossinline lambda: ArgumentCallbackContext.() -> Unit) {
         command.setArgumentCallback({ source, value -> lambda(ArgumentCallbackContext(source, value)) }, arg)
     }
 
@@ -98,8 +75,15 @@ open class Kommand(val k: Kommand.() -> Unit = {}, name: String, vararg aliases:
         subcommands.forEach { command.addSubcommand(it.command) }
     }
 
+    /**
+     * 创建一个新的 Kommand 并将它作为当前 Kommand 的子命令。新的 Kommand 默认使用现有 Kommand 的 [notPlayerAction] , [notConsoleAction] , [helpAction]。
+     */
     fun subcommand(name: String, vararg aliases: String, subK: Kommand.() -> Unit) {
-        addSubcommands(Kommand(subK, name, *aliases))
+        val kommand = Kommand(subK, name, *aliases)
+        kommand.helpAction = helpAction
+        kommand.notPlayerAction = notPlayerAction
+        kommand.notConsoleAction = notConsoleAction
+        addSubcommands(kommand)
     }
 
     fun register() {
@@ -110,6 +94,8 @@ open class Kommand(val k: Kommand.() -> Unit = {}, name: String, vararg aliases:
         Manager.command.unregister(command)
     }
 
-
+    fun help(action: SyntaxContext.(CommandSender) -> Unit) {
+        helpAction = action
+    }
 
 }

@@ -1,10 +1,8 @@
 package world.cepi.kstom.command.arguments.generation
 
-import world.cepi.kstom.command.kommand.Kommand
+import world.cepi.kstom.command.kommand.SyntaxContext
 import kotlin.reflect.KClass
-import kotlin.reflect.full.companionObject
 import kotlin.reflect.full.companionObjectInstance
-import kotlin.reflect.full.isSubclassOf
 
 class ChosenArgumentGeneration<T : Any>(override val clazz: KClass<T>): ArgumentGenerator<T>(clazz, run {
     if (clazz.companionObjectInstance is CustomArgumentGeneration<*>) {
@@ -13,7 +11,7 @@ class ChosenArgumentGeneration<T : Any>(override val clazz: KClass<T>): Argument
         generateSyntaxes(clazz)
     }
 }) {
-    override fun generate(syntax: Kommand.SyntaxContext, args: List<String>, index: Int): T {
+    override fun generate(syntax: SyntaxContext, args: List<String>, index: Int): T {
         return if (clazz.companionObjectInstance is CustomArgumentGeneration<*>) {
             (clazz.companionObjectInstance as CustomArgumentGeneration<T>).generate(syntax, args, index)
         } else {

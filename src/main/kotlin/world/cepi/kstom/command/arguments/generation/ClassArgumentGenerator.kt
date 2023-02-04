@@ -5,12 +5,11 @@ import net.minestom.server.command.builder.arguments.Argument
 import net.minestom.server.entity.Entity
 import net.minestom.server.utils.entity.EntityFinder
 import net.minestom.server.utils.location.RelativeVec
-import world.cepi.kstom.command.arguments.ArgumentContext
 import world.cepi.kstom.command.arguments.ArgumentContextValue
 import world.cepi.kstom.command.arguments.generation.annotations.GenerationConstructor
 import world.cepi.kstom.command.kommand.Kommand
+import world.cepi.kstom.command.kommand.SyntaxContext
 import world.cepi.kstom.serializer.SerializableEntityFinder
-import java.lang.IllegalArgumentException
 import kotlin.reflect.KClass
 import kotlin.reflect.full.hasAnnotation
 import kotlin.reflect.full.primaryConstructor
@@ -21,7 +20,7 @@ class ClassArgumentGenerator<T : Any>(override val clazz: KClass<T>): ArgumentGe
     generateSyntaxes(clazz)
 ) {
 
-    override fun generate(syntax: Kommand.SyntaxContext, args: List<String>, fullIndex: Int): T = with(syntax) {
+    override fun generate(syntax: SyntaxContext, args: List<String>, fullIndex: Int): T = with(syntax) {
         val constructor = clazz.constructors
             .firstOrNull { it.hasAnnotation<GenerationConstructor>() }
             ?: clazz.primaryConstructor
@@ -50,7 +49,7 @@ class ClassArgumentGenerator<T : Any>(override val clazz: KClass<T>): ArgumentGe
                 value as Pair<String, CommandContext>
 
                 return@mapIndexed ClassArgumentGenerator(clazz.sealedSubclasses.first { it.simpleName == value.first }).generate(
-                    Kommand.SyntaxContext(sender, value.second),
+                    SyntaxContext(sender, value.second),
                     value.second.map.keys.toMutableList().also { it.removeAt(0) },
                     -1
                 )
@@ -76,26 +75,26 @@ class ClassArgumentGenerator<T : Any>(override val clazz: KClass<T>): ArgumentGe
     companion object {
         inline fun <reified T: Any> Kommand.syntaxesFrom(
             vararg arguments: Argument<*>,
-            noinline lambda: Kommand.SyntaxContext.(T) -> Unit
+            noinline lambda: SyntaxContext.(T) -> Unit
         ): ArgumentGenerator<T> = ChosenArgumentGeneration(T::class).also { it.applySyntax(this, arguments, emptyArray(), lambda) }
 
         fun <T : Any> Kommand.syntaxesFrom(
             clazz: KClass<T>,
             vararg arguments: Argument<*>,
-            lambda: Kommand.SyntaxContext.(T) -> Unit
+            lambda: SyntaxContext.(T) -> Unit
         ): ArgumentGenerator<T> = ChosenArgumentGeneration(clazz).also { it.applySyntax(this, arguments, emptyArray(), lambda) }
 
         inline fun <reified T: Any> Kommand.syntaxesFrom(
             beforeArguments: Array<Argument<*>>,
             afterArguments: Array<Argument<*>>,
-            noinline lambda: Kommand.SyntaxContext.(T) -> Unit
+            noinline lambda: SyntaxContext.(T) -> Unit
         ): ArgumentGenerator<T> = ChosenArgumentGeneration(T::class).also { it.applySyntax(this, beforeArguments, afterArguments, lambda) }
 
         fun <T: Any> Kommand.syntaxesFrom(
             clazz: KClass<T>,
             beforeArguments: Array<Argument<*>>,
             afterArguments: Array<Argument<*>>,
-            lambda: Kommand.SyntaxContext.(T) -> Unit
+            lambda: SyntaxContext.(T) -> Unit
         ): ArgumentGenerator<T> = ChosenArgumentGeneration(clazz).also { it.applySyntax(this, beforeArguments, afterArguments, lambda) }
     }
 
