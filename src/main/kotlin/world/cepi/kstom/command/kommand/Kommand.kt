@@ -21,17 +21,17 @@ open class Kommand(initAction: Kommand.() -> Unit = {}, name: String, vararg ali
 
     val command = Command(name, *aliases)
     val helpArg = ArgumentLiteral("help")
-    private var helpAction: SyntaxContext.(CommandSender) -> Unit = {}
+    private var helpAction: SyntaxContext.() -> Unit = {}
     var notPlayerAction: (CommandSender) -> Unit = { }
     var notConsoleAction: (CommandSender) -> Unit = { }
     var enableHelpArg = false
 
     init {
-        default { helpAction(sender) }
+        default { helpAction() }
         initAction()
         // 必须放在 initAction() 之后
         if (enableHelpArg) {
-            syntax(helpArg) { helpAction(sender) }
+            syntax(helpArg) { helpAction() }
         }
     }
 
@@ -101,7 +101,7 @@ open class Kommand(initAction: Kommand.() -> Unit = {}, name: String, vararg ali
     /**
      * 注册帮助信息。子命令会继承父命令的帮助信息，但子命令默认不启用 help 命令参数。
      */
-    fun help(action: SyntaxContext.(CommandSender) -> Unit) {
+    fun help(action: SyntaxContext.() -> Unit) {
         helpAction = action
         enableHelpArg = true
     }

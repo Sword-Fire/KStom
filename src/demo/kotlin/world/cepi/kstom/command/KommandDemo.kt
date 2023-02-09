@@ -3,7 +3,7 @@ package world.cepi.kstom.command
 import net.minestom.server.command.builder.Command
 import net.minestom.server.command.builder.arguments.ArgumentType
 import net.minestom.server.entity.Player
-import world.cepi.kstom.command.arguments.*
+import world.cepi.kstom.command.arguments.literal
 import world.cepi.kstom.command.kommand.Kommand
 
 /**
@@ -59,7 +59,7 @@ object New : Kommand({
     }
 
     subcommand("sub") {
-        onlyPlayers()
+//        onlyPlayer()
 
         val delete by literal
 
@@ -70,11 +70,11 @@ object New : Kommand({
 
     syntax(add, amount) {
         player.level += !amount
-    }.onlyPlayers()
+    }
 
     syntax(remove, amount) {
         player.level = (player.level - !amount).coerceAtLeast(0)
-    }.onlyPlayers()
+    }
 
     syntax(set, amount) {
         player.level = !amount

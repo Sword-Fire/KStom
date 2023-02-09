@@ -62,15 +62,13 @@ fun <T> Argument<T>.suggest(
     suggestionIgnoreOption: SuggestionIgnoreOption = SuggestionIgnoreOption.IGNORE_CASE,
     lambda: SyntaxContext.(MutableList<String>) -> Unit
 ): Argument<T> {
-    val list = mutableListOf<String>()
     return this.suggestEntries(suggestionIgnoreOption) {
+        val list = mutableListOf<String>()
         lambda(this, list)
         list.map { SuggestionEntry(it) }
     }
 }
 
-fun <T> Argument<T>.suggestAllPlayers() = suggest {
-    mutableListOf<String>().apply {
-        Manager.connection.onlinePlayers.forEach { add(it.username) }
-    }
+fun <T> Argument<T>.suggestAllPlayers() = suggest { list ->
+    Manager.connection.onlinePlayers.forEach { list.add(it.username) }
 }
