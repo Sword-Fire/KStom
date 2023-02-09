@@ -4,6 +4,7 @@ import net.minestom.server.command.builder.arguments.Argument
 import net.minestom.server.command.builder.arguments.ArgumentLiteral
 import net.minestom.server.command.builder.suggestion.SuggestionEntry
 import org.jetbrains.annotations.Contract
+import world.cepi.kstom.Manager
 import world.cepi.kstom.command.kommand.SyntaxContext
 import kotlin.reflect.KProperty
 
@@ -29,9 +30,9 @@ fun String.literal() = ArgumentLiteral(this)
 fun <T> Argument<T>.defaultValue(value: T): Argument<T> =
     this.setDefaultValue { value }
 
-open class SuggestionIgnoreOption(val modifier: (String) -> String = { it }) {
-    object NONE: SuggestionIgnoreOption()
-    object IGNORE_CASE: SuggestionIgnoreOption({ it.lowercase() })
+open class SuggestionIgnoreOption(val modifier: (String) -> String) {
+    object NONE : SuggestionIgnoreOption({ it })
+    object IGNORE_CASE : SuggestionIgnoreOption({ it.lowercase() })
 }
 
 /**
@@ -43,23 +44,33 @@ open class SuggestionIgnoreOption(val modifier: (String) -> String = { it }) {
  * @return The argument that had its suggestion callback set
  */
 @Contract("_ -> this")
-fun <T> Argument<T>.suggestComplex(
-    suggestionIgnoreOption: SuggestionIgnoreOption = SuggestionIgnoreOption.NONE,
+fun <T> Argument<T>.suggestEntries(
+    suggestionIgnoreOption: SuggestionIgnoreOption = SuggestionIgnoreOption.IGNORE_CASE,
     lambda: SyntaxContext.() -> List<SuggestionEntry>
-): Argument<T>
-    = this.setSuggestionCallback { sender, context, suggestion ->
-
-        lambda(SyntaxContext(sender, context))
-            .filter {
-                suggestionIgnoreOption.modifier(it.entry)
-                    .startsWith(suggestionIgnoreOption.modifier(suggestion.input))
-            }
-            .sortedBy { it.entry }
-            .forEach { suggestion.addEntry(it) }
-
-    }
+): Argument<T> = this.setSuggestionCallback { sender, context, suggestion ->
+    lambda(SyntaxContext(sender, context))
+        .filter {
+            val raw = context.getRaw(this)
+            if (raw.isNullOrBlank() || (raw.length == 1 && raw[0] == '\u0000')) true
+            else suggestionIgnoreOption.modifier(it.entry).startsWith(suggestionIgnoreOption.modifier(context.getRaw(this)))
+        }
+        .sortedBy { it.entry }
+        .forEach { suggestion.addEntry(it) }
+}
 
 fun <T> Argument<T>.suggest(
-    suggestionIgnoreOption: SuggestionIgnoreOption = SuggestionIgnoreOption.NONE,
-    lambda: SyntaxContext.() -> List<String>
-): Argument<T> = this.suggestComplex(suggestionIgnoreOption) { lambda(this).map { SuggestionEntry(it) } }
+    suggestionIgnoreOption: SuggestionIgnoreOption = SuggestionIgnoreOption.IGNORE_CASE,
+    lambda: SyntaxContext.(MutableList<String>) -> Unit
+): Argument<T> {
+    val list = mutableListOf<String>()
+    return this.suggestEntries(suggestionIgnoreOption) {
+        lambda(this, list)
+        list.map { SuggestionEntry(it) }
+    }
+}
+
+fun <T> Argument<T>.suggestAllPlayers() = suggest {
+    mutableListOf<String>().apply {
+        Manager.connection.onlinePlayers.forEach { add(it.username) }
+    }
+}

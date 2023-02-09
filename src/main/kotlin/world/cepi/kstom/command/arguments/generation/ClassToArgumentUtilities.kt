@@ -172,7 +172,7 @@ fun argumentFromClass(
             val instance = annotation.generator.objectInstance
                 ?: throw IllegalStateException("Class ${annotation.generator.name} is not an object type! (DynamicWord)")
 
-            it.suggestComplex(lambda = { instance.grab(sender) })
+            it.suggestEntries(lambda = { instance.grab(sender) })
         }
     }
 }
