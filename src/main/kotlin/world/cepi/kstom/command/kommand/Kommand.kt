@@ -5,9 +5,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.minestom.server.command.CommandSender
 import net.minestom.server.command.builder.Command
+import net.minestom.server.command.builder.CommandContext
 import net.minestom.server.command.builder.CommandExecutor
 import net.minestom.server.command.builder.arguments.Argument
 import net.minestom.server.command.builder.arguments.ArgumentLiteral
+import net.minestom.server.command.builder.exception.ArgumentSyntaxException
+import net.minestom.server.entity.Player
 import org.jetbrains.annotations.Contract
 import world.cepi.kstom.Manager
 import kotlin.coroutines.CoroutineContext
@@ -21,18 +24,25 @@ open class Kommand(initAction: Kommand.() -> Unit = {}, name: String, vararg ali
 
     val command = Command(name, *aliases)
     val helpArg = ArgumentLiteral("help")
-    private var helpAction: SyntaxContext.() -> Unit = {}
+    var helpAction: SyntaxContext.() -> Unit = {}
     var notPlayerAction: (CommandSender) -> Unit = { }
     var notConsoleAction: (CommandSender) -> Unit = { }
-    var enableHelpArg = false
 
     init {
-        default { helpAction() }
+//        default { helpAction() }
         initAction()
-        // 必须放在 initAction() 之后
-        if (enableHelpArg) {
-            syntax(helpArg) { helpAction() }
-        }
+    }
+
+    data class ArgumentCallbackContext(val sender: CommandSender, val exception: ArgumentSyntaxException)
+
+    data class ConditionContext(val sender: CommandSender, val player: Player?, val input: String)
+
+    data class SyntaxContext(val sender: CommandSender, val context: CommandContext) {
+        val player by lazy { sender as Player }
+        val commandName = context.commandName
+        operator fun <T> get(argument: Argument<T>): T = context[argument]
+        operator fun <T> Argument<T>.not(): T = context[this]
+        fun raw(argument: Argument<*>): String = context.getRaw(argument)
     }
 
     @Contract(pure = true)
@@ -98,12 +108,6 @@ open class Kommand(initAction: Kommand.() -> Unit = {}, name: String, vararg ali
         Manager.command.unregister(command)
     }
 
-    /**
-     * 注册帮助信息。子命令会继承父命令的帮助信息，但子命令默认不启用 help 命令参数。
-     */
-    fun help(action: SyntaxContext.() -> Unit) {
-        helpAction = action
-        enableHelpArg = true
-    }
+
 
 }

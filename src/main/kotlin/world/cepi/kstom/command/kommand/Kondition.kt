@@ -1,19 +1,19 @@
 package world.cepi.kstom.command.kommand
 
 abstract class Kondition<T : Kondition<T>> {
-    abstract val conditions: MutableList<ConditionContext.() -> Boolean>
+    abstract val conditions: MutableList<Kommand.ConditionContext.() -> Boolean>
     abstract val t: T
     abstract val kommandReference: Kommand
 
     /**
      * 检查是否满足所有的条件。
      */
-    fun conditionPasses(context: ConditionContext): Boolean = conditions.all { it(context) }
+    fun conditionPasses(context: Kommand.ConditionContext): Boolean = conditions.all { it(context) }
 
     /**
      * 添加条件。
      */
-    fun condition(lambda: ConditionContext.() -> Boolean): T {
+    fun condition(lambda: Kommand.ConditionContext.() -> Boolean): T {
         conditions += lambda
         return t
     }
